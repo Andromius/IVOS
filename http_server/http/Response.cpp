@@ -59,11 +59,11 @@ void Response::create_file_response(std::string path)
     set_mime_type(path);
     
     _response = _version + " 200 OK";
-    _response = _response.append("\nContent-Length: ");
+    _response = _response.append("\r\nContent-Length: ");
     _response = _response.append(std::to_string(_content_length));
-    _response = _response.append("\nContent-Type: ");
+    _response = _response.append("\r\nContent-Type: ");
     _response = _response.append(_mime_type);
-    _response = _response.append("\n\n");
+    _response = _response.append("\r\n\r\n");
     _response = _response.append(_content);
 }
 
@@ -72,11 +72,11 @@ void Response::create_not_found_response()
     load_file("/not_found.html");
 
     _response = _version + " 404 Not Found";
-    _response = _response.append("\nContent-Length: ");
+    _response = _response.append("\r\nContent-Length: ");
     _response = _response.append(std::to_string(_content_length)); 
-    _response = _response.append("\nContent-Type: ");
+    _response = _response.append("\r\nContent-Type: ");
     _response = _response.append(_mime_type);
-    _response = _response.append("\n\n");
+    _response = _response.append("\r\n\r\n");
     _response = _response.append(_content);
 }
 

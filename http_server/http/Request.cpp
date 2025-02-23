@@ -21,7 +21,7 @@ RequestType Request::to_request_type(std::string &input)
     return _mapping.at(input);
 }
 
-Request::Request(/* args */)
+Request::Request()
 {
     _fields = std::map<std::string, std::string>();
 }

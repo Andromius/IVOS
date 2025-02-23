@@ -50,23 +50,26 @@ int main(int argc, char const* argv[])
         exit(EXIT_FAILURE);
     }
 
-    while((new_socket = accept(server_fd, (struct sockaddr*)&address, &addrlen)) != -1) 
+    while((new_socket = accept(server_fd, (struct sockaddr*)&address, &addrlen)) != -1)
     {
         Client client = Client(new_socket);
-        Request request = client.receive();
-
-        Response response = Response();
-        if (request.has_path())
+        while (client.is_open())
         {
-            response.create_file_response(request.get_path());
-            client.send(response);
-            client.close();
-            continue;
-        }
+            Request request = Request();
+            if (!client.receive(request))
+                continue;
 
-        response.create_file_response("/index.html");
-        client.send(response);
-        client.close();
+            Response response = Response();
+            if (request.has_path())
+            {
+                response.create_file_response(request.get_path());
+                client.send(response);
+                continue;
+            }
+    
+            response.create_file_response("/index.html");
+            client.send(response);
+        }
     }
 
     close(server_fd);
