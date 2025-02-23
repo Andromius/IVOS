@@ -1,9 +1,10 @@
 #include "Client.hpp"
 
-Client::Client(int socket)
+Client::Client(int socket, Logger* logger)
 {
     _socket = socket;
     _is_open = true;
+    _logger = logger;
 }
 
 void Client::send(Response& response)

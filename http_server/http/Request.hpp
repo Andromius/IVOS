@@ -8,7 +8,7 @@
 class Request
 {
 private:
-    const std::map<std::string, RequestType> _mapping = { 
+    const std::map<std::string, RequestType> _string_to_type = { 
         {"GET", GET},
         {"POST", POST},
         {"OPTIONS", OPTIONS},
@@ -16,6 +16,16 @@ private:
         {"PUT", PUT},
         {"DELETE", DELETE}
     };
+    
+    const std::map<RequestType, std::string> _type_to_string = {
+        {GET, "GET"},
+        {POST, "POST"},
+        {OPTIONS, "OPTIONS"},
+        {HEAD, "HEAD"},
+        {PUT, "PUT"},
+        {DELETE, "DELETE"}
+    };
+
     RequestType _type;
     std::string _path;
     std::string _version;
@@ -29,6 +39,7 @@ public:
 
     void parse(std::string request);
     RequestType get_type();
+    std::string get_type_as_string();
     bool has_path();
     std::string get_path();
 };

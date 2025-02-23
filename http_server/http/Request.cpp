@@ -18,7 +18,7 @@ std::vector<std::string> Request::string_split(std::string& input, std::string d
 
 RequestType Request::to_request_type(std::string &input)
 {
-    return _mapping.at(input);
+    return _string_to_type.at(input);
 }
 
 Request::Request()
@@ -55,6 +55,11 @@ void Request::parse(std::string request)
 RequestType Request::get_type()
 {
     return _type;
+}
+
+std::string Request::get_type_as_string()
+{
+    return _type_to_string.at(_type);
 }
 
 bool Request::has_path()

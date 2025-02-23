@@ -1,12 +1,14 @@
 // Server side C program to demonstrate Socket
 // programming
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
-
+#include <memory>
 #include <fstream>
 #include <iostream>
+#include <fcntl.h>
 
 #include "http/Client.hpp"
 
@@ -50,15 +52,22 @@ int main(int argc, char const* argv[])
         exit(EXIT_FAILURE);
     }
 
+
+    int log_fd = open("server.log", O_CREAT | O_WRONLY | O_TRUNC, S_IRWXU);
+    std::unique_ptr<Logger> logger = std::make_unique<Logger>(log_fd);
+    logger->log(LogLevel::Info, "Server started on port 8080");
     while((new_socket = accept(server_fd, (struct sockaddr*)&address, &addrlen)) != -1)
     {
-        Client client = Client(new_socket);
+        Client client = Client(new_socket, logger.get());
         while (client.is_open())
         {
             Request request = Request();
             if (!client.receive(request))
                 continue;
-
+            
+            char ip[INET_ADDRSTRLEN];
+            inet_ntop(AF_INET, &address.sin_addr, ip, INET_ADDRSTRLEN);
+            logger->log(LogLevel::Info, std::string(ip) + " -> [" + request.get_type_as_string() + "]: " + request.get_path());
             Response response = Response();
             if (request.has_path())
             {
