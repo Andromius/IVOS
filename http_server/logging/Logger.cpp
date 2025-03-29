@@ -2,21 +2,23 @@
 
 Logger::Logger()
 {
-    _fd = fileno(stdout);
+    _out_stream.open("/dev/stdout");
 }
 
-Logger::Logger(int fd)
+Logger::Logger(std::string file_path)
 {
-    _fd = fd;
+    _out_stream.open(file_path, std::ios::trunc | std::ios::out);
+    if (!_out_stream.is_open())
+    {
+        perror("Failed to open log file");
+        exit(EXIT_FAILURE);
+    }
 }
 
-Logger::~Logger()
+void Logger::log(LogLevel level, std::time_t time, std::string message)
 {
-}
-
-void Logger::log(LogLevel level, std::string message)
-{
-    _mutex.lock();
-    dprintf(_fd, "[%s] %s\n", _levelStrings[level].c_str(), message.c_str());
-    _mutex.unlock();
+    std::tm* local_time = std::localtime(&time);
+    std::ostringstream out_stream;
+    _out_stream << "[" << std::put_time(local_time, "%Y-%m-%d %H:%M:%S") << "] [" << _levelStrings[level] << "] " << message << std::endl;
+    _out_stream.flush();
 }

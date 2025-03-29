@@ -1,87 +1,52 @@
-// Server side C program to demonstrate Socket
-// programming
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string>
-#include <memory>
-#include <fstream>
-#include <iostream>
-#include <fcntl.h>
-
-#include "http/Client.hpp"
-
-#define PORT 8080
+#include "core/Server.hpp"
 
 int main(int argc, char const* argv[])
 {
-    int server_fd, new_socket;
-    struct sockaddr_in address;
-    int opt = 1;
-    socklen_t addrlen = sizeof(address);
-
-    // Creating socket file descriptor
-    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-        perror("socket failed");
-        exit(EXIT_FAILURE);
-    }
-
-    // Forcefully attaching socket to the port 8080
-    if (setsockopt(server_fd, SOL_SOCKET,
-                   SO_REUSEADDR | SO_REUSEPORT, &opt,
-                   sizeof(opt))) 
-    {
-        perror("setsockopt");
-        exit(EXIT_FAILURE);
-    }
-    address.sin_family = AF_INET;
-    address.sin_addr.s_addr = INADDR_ANY;
-    address.sin_port = htons(PORT);
-
-    // Forcefully attaching socket to the port 8080
-    if (bind(server_fd, (struct sockaddr*)&address, sizeof(address)) < 0)
-    {
-        perror("bind failed");
-        exit(EXIT_FAILURE);
-    }
-
-    if (listen(server_fd, 3) < 0)
-    {
-        perror("listen");
-        exit(EXIT_FAILURE);
-    }
-
-
-    int log_fd = open("server.log", O_CREAT | O_WRONLY | O_TRUNC, S_IRWXU);
-    std::unique_ptr<Logger> logger = std::make_unique<Logger>(log_fd);
-    logger->log(LogLevel::Info, "Server started on port 8080");
-    while((new_socket = accept(server_fd, (struct sockaddr*)&address, &addrlen)) != -1)
-    {
-        Client client = Client(new_socket, logger.get());
-        while (client.is_open())
-        {
-            Request request = Request();
-            if (!client.receive(request))
-                continue;
-            
-            char ip[INET_ADDRSTRLEN];
-            inet_ntop(AF_INET, &address.sin_addr, ip, INET_ADDRSTRLEN);
-            logger->log(LogLevel::Info, std::string(ip) + " -> [" + request.get_type_as_string() + "]: " + request.get_path());
-            Response response = Response();
-            if (request.has_path())
-            {
-                response.create_file_response(request.get_path());
-                client.send(response);
-                continue;
-            }
+    strncasecmp("hello", "Hello", 5);
     
-            response.create_file_response("/index.html");
-            client.send(response);
+    for (int i = 1; i < argc; i++)
+    {
+        if (strcasecmp(argv[i],"-h") == 0 || strcasecmp(argv[i],"--help") == 0)
+        {
+            std::cout << "Usage: " << argv[0] << " [options]" << std::endl;
+            std::cout << "Options:" << std::endl;
+            std::cout << "  -h, --help\t\tShow this help message and exit" << std::endl;
+            std::cout << "  -p, --port\t\tSet the port number" << std::endl;
+            std::cout << "  -c, --connections\tSet the maximum number of connections" << std::endl;
+            std::cout << "  -l, --log\t\tSet the log file" << std::endl;
+            std::cout << "  -s, --ssl\t\tSet the SSL certificate and private key" << std::endl;
+            exit(EXIT_SUCCESS);
+        }
+        else if (strcasecmp(argv[i],"-p") == 0 || strcasecmp(argv[i],"--port") == 0)
+        {
+
+        }
+        else if (strcasecmp(argv[i],"-c") == 0 || strcasecmp(argv[i],"--connections") == 0)
+        {
+
+        }
+        else if (strcasecmp(argv[i],"-l") == 0 || strcasecmp(argv[i],"--log") == 0)
+        {
+
+        }
+        else if (strcasecmp(argv[i],"-s") == 0 || strcasecmp(argv[i],"--ssl") == 0)
+        {
+
+        }
+        else
+        {
+            std::cerr << "Unknown option: " << argv[i] << std::endl;
+            exit(EXIT_FAILURE);
         }
     }
 
-    close(server_fd);
-    
-    return 0;
+    Server* server = Server::get_instance()
+        ->configure_port(8080)
+        ->configure_max_connections(10)
+        ->add_logger("server.log")
+        ->add_console_logger()
+        ->configure_ssl("certificate.pem", "private.pem");
+    server->run();
+    delete server;
+    exit(EXIT_SUCCESS); 
 }

@@ -1,3 +1,6 @@
+#ifndef LOGGING_LOGLEVEL_HPP
+#define LOGGING_LOGLEVEL_HPP
+
 enum LogLevel
 {
     Debug,
@@ -6,3 +9,5 @@ enum LogLevel
     Error,
     Fatal
 };
+
+#endif // LOGGING_LOGLEVEL_HPP

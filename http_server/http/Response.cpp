@@ -48,6 +48,18 @@ std::string Response::get_response()
     return _response;
 }
 
+void Response::create_string_response(std::string response)
+{
+    //std::cout << response.length() << std::endl;
+    _response = _version + " 200 OK";
+    _response = _response.append("\r\nContent-Length: ");
+    _response = _response.append(std::to_string(response.length()));
+    _response = _response.append("\r\nContent-Type: ");
+    _response = _response.append(_mime_type);
+    _response = _response.append("\r\n\r\n");
+    _response = _response.append(response);
+}
+
 void Response::create_file_response(std::string path)
 {
     if (!load_file(path))
@@ -70,6 +82,7 @@ void Response::create_file_response(std::string path)
 void Response::create_not_found_response()
 {
     load_file("/not_found.html");
+    set_mime_type("/not_found.html");
 
     _response = _version + " 404 Not Found";
     _response = _response.append("\r\nContent-Length: ");
@@ -80,7 +93,33 @@ void Response::create_not_found_response()
     _response = _response.append(_content);
 }
 
+void Response::create_service_unavailable_response()
+{
+    load_file("/service_unavailable.html");
+    set_mime_type("/service_unavailable.html");
+
+    _response = _version + " 503 Service Unavailable";
+    _response = _response.append("\r\nContent-Length: ");
+    _response = _response.append(std::to_string(_content_length));
+    _response = _response.append("\r\nContent-Type: ");
+    _response = _response.append(_mime_type);
+    _response = _response.append("\r\n\r\n");
+    _response = _response.append(_content);
+}
+
 int Response::get_response_length()
 {
     return _response.length();
+}
+
+void Response::create_created_response()
+{
+    std::string response = "received";
+    _response = _version + " 201 CREATED";
+    _response = _response.append("\r\nContent-Length: ");
+    _response = _response.append(std::to_string(response.length()));
+    _response = _response.append("\r\nContent-Type: ");
+    _response = _response.append(_mime_type);
+    _response = _response.append("\r\n\r\n");
+    _response = _response.append(response);
 }

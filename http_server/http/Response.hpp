@@ -35,7 +35,7 @@ private:
     
     std::string _response;
     std::string _content;
-    std::string _mime_type = "text/html";
+    std::string _mime_type = "text/plain";
     int _content_length;
 
     bool load_file(std::string path);
@@ -44,7 +44,10 @@ public:
     Response();
     ~Response();
     std::string get_response();
+    void create_string_response(std::string response);
     void create_file_response(std::string path);
     void create_not_found_response();
+    void create_service_unavailable_response();
+    void create_created_response();
     int get_response_length();
 };

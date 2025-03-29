@@ -4,6 +4,8 @@
 #include "RequestType.hpp"
 #include <sstream>
 #include <algorithm>
+#include <cstring>
+#include <iostream>
 
 class Request
 {
@@ -30,8 +32,9 @@ private:
     std::string _path;
     std::string _version;
     std::map<std::string, std::string> _fields;
+    std::string _boundary;
 
-    std::vector<std::string> string_split(std::string& input, std::string delimiter);
+    
     RequestType to_request_type(std::string& input);
 public:
     Request();
@@ -42,4 +45,10 @@ public:
     std::string get_type_as_string();
     bool has_path();
     std::string get_path();
+    bool keep_alive();
+    std::string get_path_extension();
+    bool is_script();
+    std::string get_boundary();
+    std::string get_field(std::string field);
+    static std::vector<std::string> string_split(std::string& input, std::string delimiter);
 };

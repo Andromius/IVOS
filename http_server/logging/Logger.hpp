@@ -1,14 +1,21 @@
+#ifndef LOGGER_HPP
+#define LOGGER_HPP
+
 #include <iostream>
 #include <string>
 #include <map>
-#include <mutex>
+#include <ctime>
+#include <iomanip>
+#include <semaphore.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <fstream>
 #include "LogLevel.hpp"
-
 
 class Logger
 {
 private:
-    int _fd;
     std::map<LogLevel, std::string> _levelStrings = {
         {Debug, "DEBUG"},
         {Info, "INFO"},
@@ -16,12 +23,13 @@ private:
         {Error, "ERROR"},
         {Fatal, "FATAL"}
     };
-    std::mutex _mutex;
+    std::ofstream _out_stream;
 
 public:
     Logger();
-    Logger(int fd);
-    ~Logger();
+    Logger(std::string file_path);
 
-    void log(LogLevel level, std::string message);
+    virtual void log(LogLevel level, std::time_t time, std::string message);
 };
+
+#endif // LOGGER_HPP

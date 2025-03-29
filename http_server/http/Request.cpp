@@ -48,6 +48,18 @@ void Request::parse(std::string request)
             continue;
         _fields[tokens[0]] = tokens[1];
     }
+
+    if (_fields.count("Content-Type") != 0)
+    {
+        tokens = string_split(_fields["Content-Type"], "; ");
+        for (auto &&token : tokens)
+        {
+            if (token.find("boundary") != std::string::npos)
+            {
+                _boundary = string_split(token, "=")[1];
+            }
+        }
+    }
     
     return;
 }
@@ -70,4 +82,39 @@ bool Request::has_path()
 std::string Request::get_path()
 {
     return _path;
+}
+
+bool Request::keep_alive()
+{
+    if (_fields.find("Connection") != _fields.end())
+        return _fields["Connection"] == "keep-alive";
+    return false;
+}
+
+std::string Request::get_path_extension()
+{
+    std::string extension = _path.substr(_path.find_last_of(".") + 1);
+    return extension;
+}
+
+bool Request::is_script()
+{
+    std::string extension = get_path_extension();
+    if (extension == "py" || extension == "sh" || extension == "php")
+        return true;
+    return false;
+}
+
+std::string Request::get_boundary()
+{
+    return _boundary;
+}
+
+std::string Request::get_field(std::string field)
+{
+    if (_fields.count(field) <= 0)
+    {
+        return "";
+    }
+    return _fields[field];
 }
