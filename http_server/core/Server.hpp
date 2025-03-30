@@ -14,6 +14,7 @@
 #include <errno.h>
 #include <string.h>
 #include <cstdio>
+#include <array>
 
 class Server
 {
