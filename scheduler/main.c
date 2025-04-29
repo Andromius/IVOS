@@ -60,7 +60,7 @@ void print_usage(const char *program_name) {
 
 int main(int argc, char **argv)
 {
-	sem_init(&sem, 0); // Initialize semaphore with value 1
+	sem_init(&sem, 1); // Initialize semaphore with value 1
 	if (argc == 1)
 	{
 		print_usage(argv[0]);
@@ -94,9 +94,9 @@ int main(int argc, char **argv)
 	}
 
 	gt_init();		  // initialize threads, see gthr.c
-	gt_create(f, 6);  // set f() as first thread
+	gt_create(f, 3);  // set f() as first thread
 	gt_create(f, 0);  // set f() as second thread
-	gt_create(g, 20); // set g() as third thread
-	gt_create(f, 12);  // set g() as fourth thread
+	gt_create(f, 10); // set g() as third thread
+	gt_create(f, 6);  // set g() as fourth thread
 	gt_return(1);	  // wait until all threads terminate
 }

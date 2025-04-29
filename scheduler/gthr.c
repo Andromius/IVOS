@@ -460,10 +460,8 @@ bool gt_schedule(void)
 
     gt_reset_sig(SIGALRM);
     p = gt_current;
-    printf("HERE\n %x", p);
     if (!get_next_thread(&p))
     {
-        printf("HERE2\n %x", p);
         return false;
     }
 

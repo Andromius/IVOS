@@ -3,7 +3,7 @@
 enum {
     MaxGThreads = 5,            // Maximum number of threads, used as array size for gttbl
     StackSize = 0x400000,       // Size of stack of each thread
-    MinPriority = 20,          // Maximum priority
+    MinPriority = 10,          // Maximum priority
     MaxPriority = 0           // Minimum priority
 };
 
