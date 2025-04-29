@@ -10,9 +10,15 @@
 #include <string.h>
 #include <math.h>
 
+#include <asm-generic/signal-defs.h>
+
 #include "gthr.h"
 #include "gthr_struct.h"
-#include <asm-generic/signal-defs.h>
+
+struct gt gt_table[MaxGThreads];                                                // statically allocated table for thread control
+struct gt *gt_current;                                                          // pointer to current thread
+bool (*get_next_thread)(struct gt **);
+int total_tickets = 0;
 
 // function triggered periodically by timer (SIGALRM)
 void gt_alarm_handle(int sig)
@@ -103,13 +109,17 @@ void gt_print_stats(void)
 
     // Print scheduling algorithm
     printf("\033[1;35mScheduling Algorithm: %s\033[0m\n", 
-           (get_next_thread == round_robin) ? "Round Robin" : "Round Robin with Priorities");
+           get_next_thread == round_robin ? "Round Robin" : 
+           get_next_thread == round_robin_prio ? "Round Robin with Priorities" :
+           "Lottery");
     
     // Run Time Statistics Table
     printf("\033[1;36m====================================================================================\033[0m\n");
     printf("\033[1;36m                               Run Time Statistics                                    \033[0m\n");
     if (get_next_thread == round_robin_prio) {
         printf("\033[1;37mID | State   | Run Count | Priority |  Total (ms)  |  Avg (μs)  |  Min (μs)  |  Max (μs)  | Std Dev   \033[0m\n");
+    } else if (get_next_thread == lottery) {
+        printf("\033[1;37mID | State   | Run Count | Tickets  |  Total (ms)  |  Avg (μs)  |  Min (μs)  |  Max (μs)  | Std Dev   \033[0m\n");
     } else {
         printf("\033[1;37mID | State   | Run Count |  Total (ms)  |  Avg (μs)  |  Min (μs)  |  Max (μs)  | Std Dev   \033[0m\n");
     }
@@ -136,6 +146,10 @@ void gt_print_stats(void)
             state_color = "\033[1;31m";
             state_str = "Unused";
             break;
+        case Blocked:
+            state_color = "\033[1;31m";
+            state_str = "Blocked";
+            break;
         default:
             state_color = "\033[1;37m";
             state_str = "Unknown";
@@ -161,6 +175,17 @@ void gt_print_stats(void)
                    timeval_to_microseconds(&p->min_run_time),
                    timeval_to_microseconds(&p->max_run_time),
                    std_dev_run);
+        } else if (get_next_thread == lottery) {
+            printf("\033[1;36m%2ld\033[0m | %s%-7s\033[0m | \033[1;33m%9lu\033[0m | \033[1;34m%3d-%-4d\033[0m | \033[1;36m%11.2f\033[0m | \033[1;37m%10.2f\033[0m | \033[1;32m%10.2f\033[0m | \033[1;31m%10.2f\033[0m | \033[1;35m%9.2f\033[0m\n",
+                   (long)(p - gt_table),
+                   state_color, state_str,
+                   p->run_count,
+                   p->tickets_lo, p->tickets_hi,
+                   total_run_ms,
+                   p->avg_run_time_us,
+                   timeval_to_microseconds(&p->min_run_time),
+                   timeval_to_microseconds(&p->max_run_time),
+                   std_dev_run);
         } else {
             printf("\033[1;36m%2ld\033[0m | %s%-7s\033[0m | \033[1;33m%9lu\033[0m | \033[1;36m%11.2f\033[0m | \033[1;37m%10.2f\033[0m | \033[1;32m%10.2f\033[0m | \033[1;31m%10.2f\033[0m | \033[1;35m%9.2f\033[0m\n",
                    (long)(p - gt_table),
@@ -180,6 +205,8 @@ void gt_print_stats(void)
     printf("\033[1;36m                               Wait Time Statistics                                   \033[0m\n");
     if (get_next_thread == round_robin_prio) {
         printf("\033[1;37mID | State   | Wait Count | Priority |  Total (ms)  |  Avg (μs)  |  Min (μs)  |  Max (μs)  | Std Dev   \033[0m\n");
+    } else if (get_next_thread == lottery) {
+        printf("\033[1;37mID | State   | Wait Count | Tickets  |  Total (ms)  |  Avg (μs)  |  Min (μs)  |  Max (μs)  | Std Dev   \033[0m\n");
     } else {
         printf("\033[1;37mID | State   | Wait Count |  Total (ms)  |  Avg (μs)  |  Min (μs)  |  Max (μs)  | Std Dev   \033[0m\n");
     }
@@ -206,6 +233,10 @@ void gt_print_stats(void)
             state_color = "\033[1;31m";
             state_str = "Unused";
             break;
+        case Blocked:
+            state_color = "\033[1;31m";
+            state_str = "Blocked";
+            break;
         default:
             state_color = "\033[1;37m";
             state_str = "Unknown";
@@ -226,6 +257,17 @@ void gt_print_stats(void)
                    state_color, state_str,
                    p->wait_count,
                    p->priority,
+                   total_wait_ms,
+                   p->avg_wait_time_us,
+                   timeval_to_microseconds(&p->min_wait_time),
+                   timeval_to_microseconds(&p->max_wait_time),
+                   std_dev_wait);
+        } else if (get_next_thread == lottery) {
+            printf("\033[1;36m%2ld\033[0m | %s%-7s\033[0m | \033[1;33m%10lu\033[0m | \033[1;34m%3d-%-4d\033[0m | \033[1;36m%11.2f\033[0m | \033[1;37m%10.2f\033[0m | \033[1;32m%10.2f\033[0m | \033[1;31m%10.2f\033[0m | \033[1;35m%9.2f\033[0m\n",
+                   (long)(p - gt_table),
+                   state_color, state_str,
+                   p->wait_count,
+                   p->tickets_lo, p->tickets_hi,
                    total_wait_ms,
                    p->avg_wait_time_us,
                    timeval_to_microseconds(&p->min_wait_time),
@@ -274,10 +316,14 @@ void init_thread_stats(struct gt *thread)
 // initialize first thread as current context
 void gt_init(void)
 {
+    srand(time(NULL));
     gt_current = &gt_table[0];          // initialize current thread with thread #0
     gt_current->state = Running;        // set current to running
     gt_current->priority = MaxPriority; // set priority to 0
+    gt_current->tickets_lo = MaxPriority;
+    gt_current->tickets_hi = MinPriority;
     gt_current->skip_count = 0;         // set skip count to 0
+    total_tickets += MinPriority + 1;
     init_thread_stats(gt_current);
 
     signal(SIGALRM, gt_alarm_handle); // register SIGALRM, signal from timer generated by alarm
@@ -294,12 +340,11 @@ void __attribute__((noreturn)) gt_return(int ret)
         gt_schedule();                            // yield and make possible to switch to another thread
         assert(!"reachable");                     // this code should never be reachable ... (if yes, returning function on stack was corrupted)
     }
-    while (gt_schedule())
-        ; // if initial thread, wait for other to terminate
+    while (gt_schedule()); // if initial thread, wait for other to terminate
     exit(ret);
 }
 
-void update_thread_state(struct gt *thread, enum e_state new_state)
+void update_thread_state(struct gt *thread, int new_state)
 {
     struct timeval now;
 
@@ -324,7 +369,7 @@ void update_thread_state(struct gt *thread, enum e_state new_state)
             update_running_stats(&elapsed, &thread->min_run_time, &thread->max_run_time,
                                  &thread->avg_run_time_us, &thread->var_run_time_us, thread->run_count);
         }
-        else if (thread->state == Ready)
+        else if (thread->state == Ready || thread->state == Blocked)
         {
             timeval_add(&thread->total_waiting, &thread->total_waiting, &elapsed);
 
@@ -344,11 +389,15 @@ void update_thread_state(struct gt *thread, enum e_state new_state)
 bool round_robin(struct gt **thread)
 {
     while ((*thread)->state != Ready)
-    {                                              // iterate through gt_table[] until we find new thread in state Ready
+    {// iterate through gt_table[] until we find new thread in state Ready
         if (++(*thread) == &gt_table[MaxGThreads]) // at the end rotate to the beginning
-            (*thread) = &gt_table[0];
-        if ((*thread) == gt_current) // did not find any other Ready threads
-            return false;
+            *thread = &gt_table[0];
+
+        if ((*thread)->state == Blocked)
+            continue;
+
+        if ((*thread) == gt_current)
+            return true;
     }
     return true;
 }
@@ -359,6 +408,9 @@ bool round_robin_prio(struct gt **thread)
     {
         if (++(*thread) == &gt_table[MaxGThreads]) // at the end rotate to the beginning
             *thread = &gt_table[0];
+        
+        if ((*thread)->state == Blocked)
+            continue;
 
         if (((*thread)->state == Ready) && ((*thread)->priority - (*thread)->skip_count <= MaxPriority))
         {
@@ -369,8 +421,30 @@ bool round_robin_prio(struct gt **thread)
         {
             (*thread)->skip_count++;
         }
+
+        if ((*thread) == gt_current) // did not find any other Ready threads
+            return true;
     }
     return false;
+}
+
+bool lottery(struct gt** thread) 
+{
+    int winning_ticket = rand() % total_tickets;
+    for (struct gt* p = &gt_table[0]; p < &gt_table[MaxGThreads]; p++)
+    {
+        if (p->state == Blocked)
+            continue; // skip unused threads
+
+        if ((p->state == Ready || p->state == Running) &&
+            winning_ticket >= p->tickets_lo && winning_ticket <= p->tickets_hi)
+        {
+            *thread = p;
+            return true;
+        }
+    }
+
+    return round_robin(thread);
 }
 
 void set_scheduling_algorithm(bool (*algorithm)(struct gt **))
@@ -386,12 +460,14 @@ bool gt_schedule(void)
 
     gt_reset_sig(SIGALRM);
     p = gt_current;
+    printf("HERE\n %x", p);
     if (!get_next_thread(&p))
     {
+        printf("HERE2\n %x", p);
         return false;
     }
 
-    if (gt_current->state != Unused)
+    if (gt_current->state != Unused && gt_current->state != Blocked)
     { // switch current to Ready and new thread found in previous loop to Running
         update_thread_state(gt_current, Ready);
     }
@@ -439,6 +515,9 @@ int gt_create(void (*f)(void), int priority)
 
     p->priority = priority; //  set priority
     p->skip_count = 0;      //  set skip count to 0
+    p->tickets_lo = total_tickets;
+    p->tickets_hi = total_tickets + (MinPriority - p->priority);
+    total_tickets += MinPriority - p->priority + 1;
     // Initialize thread statistics
     init_thread_stats(p);
 

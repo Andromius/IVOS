@@ -1,6 +1,6 @@
 CFLAGS = -g -Wall
 
-gthr_demo: gthr.o gthr_switch.o main.o
+gthr_demo: g_queue.o g_semaphore.o gthr_switch.o gthr.o main.o
 	$(CC) -o $@ $^ -lm
 
 .S.o:

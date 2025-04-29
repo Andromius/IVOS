@@ -3,7 +3,7 @@
 enum {
     MaxGThreads = 5,            // Maximum number of threads, used as array size for gttbl
     StackSize = 0x400000,       // Size of stack of each thread
-    MinPriority = 10,          // Maximum priority
+    MinPriority = 20,          // Maximum priority
     MaxPriority = 0           // Minimum priority
 };
 
@@ -24,6 +24,7 @@ struct gt {
         Unused,
         Running,
         Ready,
+        Blocked
     } state;
     
     // Statistics tracking
@@ -50,6 +51,9 @@ struct gt {
 
     int priority;               // Thread priority
     int skip_count;            // Number of times this thread has been skipped
+
+    int tickets_lo;
+    int tickets_hi;
 };
 
 void gt_init(void);                                                     // initialize gttbl
@@ -65,7 +69,10 @@ void gt_print_stats(void);                                              // print
 int gt_uninterruptible_nanosleep(time_t sec, long nanosec);             // uninterruptible sleep
 bool round_robin(struct gt** thread);
 bool round_robin_prio(struct gt** thread);                                         // round robin scheduler
+bool lottery(struct gt** thread);
 void set_scheduling_algorithm(bool (*algorithm)(struct gt**));
+void update_thread_state(struct gt *thread, int new_state);
+
 
 // Helper functions for time calculations
 void timeval_subtract(struct timeval *result, struct timeval *x, struct timeval *y);

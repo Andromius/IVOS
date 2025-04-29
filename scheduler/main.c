@@ -11,20 +11,28 @@
 #include <string.h>
 
 #include "gthr.h"
+#include "g_semaphore.h"
+
+
+struct semaphore_t sem;
 
 // Dummy function to simulate some thread work
 void f(void)
 {
 	static int x;
 	int i = 0, id;
-
 	id = ++x;
 	while (true)
 	{
+
+		sem_wait(&sem);
+
 		printf("F Thread id = %d, val = %d BEGINNING\n", id, ++i);
 		gt_uninterruptible_nanosleep(0, 50000000);
 		printf("F Thread id = %d, val = %d END\n", id, ++i);
 		gt_uninterruptible_nanosleep(0, 50000000);
+
+		sem_post(&sem); // Signal semaphore
 	}
 }
 
@@ -41,15 +49,21 @@ void g(void)
 		gt_uninterruptible_nanosleep(0, 50000000);
 		printf("G Thread id = %d, val = %d END\n", id, ++i);
 		gt_uninterruptible_nanosleep(0, 50000000);
+	
 	}
+}
+
+void print_usage(const char *program_name) {
+	printf("Usage: %s [-rr|--round-robin] [-rrp|--round-robin-priority] [-lot|--lottery] [-h|--help]\n", program_name);
+	printf("Press CTRL+C to display thread statistics\n");
 }
 
 int main(int argc, char **argv)
 {
+	sem_init(&sem, 0); // Initialize semaphore with value 1
 	if (argc == 1)
 	{
-		printf("Usage: %s [-rr|--round-robin] [-rrp|--round-robin-priority] [-lot|--lottery] [-h|--help]\n", argv[0]);
-		printf("Press CTRL+C to display thread statistics\n");
+		print_usage(argv[0]);
 		exit(0);
 	}
 
@@ -65,13 +79,11 @@ int main(int argc, char **argv)
 		}
 		else if (strcmp(argv[i], "-lot") == 0 || strcmp(argv[i], "--lottery") == 0)
 		{
-			printf("Lottery scheduling not implemented yet! [%s]\n", argv[i]);
-			exit(1);
+			set_scheduling_algorithm(lottery);
 		}
 		else if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0)
 		{
-			printf("Usage: %s [-rr|--round-robin] [-rrp|--round-robin-priority] [-lot|--lottery] [-h|--help]\n", argv[0]);
-			printf("Press CTRL+C to display thread statistics\n");
+			print_usage(argv[0]);
 			exit(0);
 		}
 		else
@@ -82,9 +94,9 @@ int main(int argc, char **argv)
 	}
 
 	gt_init();		  // initialize threads, see gthr.c
-	gt_create(f, 3);  // set f() as first thread
+	gt_create(f, 6);  // set f() as first thread
 	gt_create(f, 0);  // set f() as second thread
-	gt_create(g, 10); // set g() as third thread
-	gt_create(g, 6);  // set g() as fourth thread
+	gt_create(g, 20); // set g() as third thread
+	gt_create(f, 12);  // set g() as fourth thread
 	gt_return(1);	  // wait until all threads terminate
 }
